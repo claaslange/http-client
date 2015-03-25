@@ -8,13 +8,16 @@ class RequestData
     private $url;
     private $headers;
 
+    private $requestUrl;
     private $protocolVersion = '1.1';
 
-    public function __construct($method, $url, array $headers = array())
+    public function __construct($method, $url, array $headers = array(), $requestUrl = null)
     {
         $this->method = $method;
         $this->url = $url;
         $this->headers = $headers;
+
+        $this->requestUrl = ($requestUrl !== null) ? $requestUrl : $this->getPath();
     }
 
     private function mergeDefaultheaders(array $headers)
@@ -70,7 +73,7 @@ class RequestData
         $headers = $this->mergeDefaultheaders($this->headers);
 
         $data = '';
-        $data .= "{$this->method} {$this->getPath()} HTTP/{$this->protocolVersion}\r\n";
+        $data .= "{$this->method} {$this->requestUrl} HTTP/{$this->protocolVersion}\r\n";
         foreach ($headers as $name => $value) {
             $data .= "$name: $value\r\n";
         }
