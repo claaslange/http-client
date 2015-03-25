@@ -9,6 +9,8 @@ class Client
     private $connector;
     private $secureConnector;
 
+    private $proxyConnector = null;
+
     public function __construct(ConnectorInterface $connector, ConnectorInterface $secureConnector)
     {
         $this->connector = $connector;
@@ -17,10 +19,42 @@ class Client
 
     public function request($method, $url, array $headers = array())
     {
-        $requestData = new RequestData($method, $url, $headers);
-        $connector = $this->getConnectorForScheme($requestData->getScheme());
+        $requestUrl = null;
+        if ($this->proxyConnector !== null) {
+            $requestUrl = $url;
+        }
+
+        $requestData = new RequestData($method, $url, $headers, $requestUrl);
+
+        if ($this->proxyConnector !== null) {
+            $connector = $this->proxyConnector;
+        } else {
+            $connector = $this->getConnectorForScheme($requestData->getScheme());
+        }
 
         return new Request($connector, $requestData);
+    }
+
+    public function withProxy($proxy)
+    {
+        if (strpos($proxy, '://') === false) {
+            $proxy = 'http://' . $proxy;
+        }
+
+        $parts = parse_url($proxy);
+
+        $client = clone $this;
+        $client->proxyConnector = new ProxyConnector($parts['host'], $parts['port'] ?: 80, $this->connector);
+
+        return $client;
+    }
+
+    public function withoutProxy()
+    {
+        $client = clone $this;
+        $client->proxyConnector = null;
+
+        return $client;
     }
 
     private function getConnectorForScheme($scheme)
