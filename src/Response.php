@@ -2,8 +2,7 @@
 
 namespace React\HttpClient;
 
-use Evenement\EventEmitterTrait;
-use React\Stream\DuplexStreamInterface;
+use Evenement\EventEmitter;
 use React\Stream\ReadableStreamInterface;
 use React\Stream\Util;
 use React\Stream\WritableStreamInterface;
@@ -13,10 +12,8 @@ use React\Stream\WritableStreamInterface;
  * @event error
  * @event end
  */
-class Response implements ReadableStreamInterface
+class Response extends EventEmitter implements ReadableStreamInterface
 {
-    use EventEmitterTrait;
-
     private $stream;
     private $protocol;
     private $version;

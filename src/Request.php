@@ -2,7 +2,7 @@
 
 namespace React\HttpClient;
 
-use Evenement\EventEmitterTrait;
+use Evenement\EventEmitter;
 use Guzzle\Parser\Message\MessageParser;
 use React\SocketClient\ConnectorInterface;
 use React\Stream\WritableStreamInterface;
@@ -14,10 +14,8 @@ use React\Stream\WritableStreamInterface;
  * @event error
  * @event end
  */
-class Request implements WritableStreamInterface
+class Request extends EventEmitter implements WritableStreamInterface
 {
-    use EventEmitterTrait;
-
     const STATE_INIT = 0;
     const STATE_WRITING_HEAD = 1;
     const STATE_HEAD_WRITTEN = 2;
