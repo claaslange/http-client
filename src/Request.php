@@ -51,6 +51,7 @@ class Request implements WritableStreamInterface
 
         $this->state = self::STATE_WRITING_HEAD;
 
+        $that = $this;
         $requestData = $this->requestData;
         $streamRef = &$this->stream;
         $stateRef = &$this->state;
@@ -58,13 +59,13 @@ class Request implements WritableStreamInterface
         $this
             ->connect()
             ->then(
-                function ($stream) use ($requestData, &$streamRef, &$stateRef) {
+                function ($stream) use ($that, $requestData, &$streamRef, &$stateRef) {
                     $streamRef = $stream;
 
-                    $stream->on('drain', array($this, 'handleDrain'));
-                    $stream->on('data', array($this, 'handleData'));
-                    $stream->on('end', array($this, 'handleEnd'));
-                    $stream->on('error', array($this, 'handleError'));
+                    $stream->on('drain', array($that, 'handleDrain'));
+                    $stream->on('data', array($that, 'handleData'));
+                    $stream->on('end', array($that, 'handleEnd'));
+                    $stream->on('error', array($that, 'handleError'));
 
                     $requestData->setProtocolVersion('1.0');
                     $headers = (string) $requestData;
@@ -73,7 +74,7 @@ class Request implements WritableStreamInterface
 
                     $stateRef = Request::STATE_HEAD_WRITTEN;
 
-                    $this->emit('headers-written', array($this));
+                    $that->emit('headers-written', array($that));
                 },
                 array($this, 'handleError')
             );
@@ -89,8 +90,8 @@ class Request implements WritableStreamInterface
             return $this->stream->write($data);
         }
 
-        $this->on('headers-written', function ($this) use ($data) {
-            $this->write($data);
+        $this->on('headers-written', function ($that) use ($data) {
+            $that->write($data);
         });
 
         if (self::STATE_WRITING_HEAD > $this->state) {
@@ -133,12 +134,13 @@ class Request implements WritableStreamInterface
             $this->stream->removeListener('error', array($this, 'handleError'));
 
             $this->response = $response;
+            $that = $this;
 
-            $response->on('end', function () {
-                $this->close();
+            $response->on('end', function () use ($that) {
+                $that->close();
             });
-            $response->on('error', function (\Exception $error) {
-                $this->closeError(new \RuntimeException(
+            $response->on('error', function (\Exception $error) use ($that) {
+                $that->closeError(new \RuntimeException(
                     "An error occured in the response",
                     0,
                     $error
