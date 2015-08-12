@@ -30,6 +30,8 @@ class Request extends EventEmitter implements WritableStreamInterface
     private $response;
     private $state = self::STATE_INIT;
 
+    private $pendingWrites = array();
+
     public function __construct(ConnectorInterface $connector, RequestData $requestData)
     {
         $this->connector = $connector;
@@ -88,9 +90,17 @@ class Request extends EventEmitter implements WritableStreamInterface
             return $this->stream->write($data);
         }
 
-        $this->on('headers-written', function ($that) use ($data) {
-            $that->write($data);
-        });
+        if (!count($this->pendingWrites)) {
+            $this->on('headers-written', function ($this) {
+                foreach ($this->pendingWrites as $pw) {
+                    $this->write($pw);
+                }
+                $this->pendingWrites = array();
+                $this->emit('drain', array($this));
+            });
+        }
+
+        $this->pendingWrites[] = $data;
 
         if (self::STATE_WRITING_HEAD > $this->state) {
             $this->writeHead();
@@ -147,7 +157,7 @@ class Request extends EventEmitter implements WritableStreamInterface
 
             $this->emit('response', array($response, $this));
 
-            $response->emit('data', array($bodyChunk));
+            $response->emit('data', array($bodyChunk, $response));
         }
     }
 
